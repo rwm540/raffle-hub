@@ -9,6 +9,12 @@ type Participant = {
   ticketNumber: string;
 };
 
+type Notification = {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+};
+
 const toPersianDigits = (str: string | number) => {
   const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   return str.toString().replace(/\d/g, (x) => persianDigits[parseInt(x)]);
@@ -32,9 +38,18 @@ export default function App() {
 
   // App State
   const [participants, setParticipants] = useState<Participant[]>([]); const [history, setHistory] = useState<{winner: Participant, date: string}[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'lottery'>('dashboard');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activeTab, setActiveTab] = useState<"dashboard" | "lottery">("dashboard");
   const [currentSubPage, setCurrentSubPage] = useState<'history' | 'settings' | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+
+  const addNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000);
+  };
   
   // Lottery State
   const [ticketInput, setTicketInput] = useState('');
@@ -56,8 +71,9 @@ export default function App() {
     e.preventDefault();
     if (otpInput === generatedOtp) {
       setAuthState('authenticated');
+      addNotification('خوش آمدید!', 'success');
     } else {
-      alert('کد وارد شده اشتباه است');
+      addNotification('کد وارد شده اشتباه است', 'error');
     }
   };
 
@@ -78,7 +94,7 @@ export default function App() {
         ticketNumber: ticketInput 
       }]);
       setTicketInput('');
-      alert('با موفقیت در قرعه‌کشی ثبت‌نام شدید!');
+      addNotification('با موفقیت در قرعه‌کشی ثبت‌نام شدید!', 'success');
     }
   };
 
@@ -637,6 +653,33 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Custom Notifications (Toasts) */}
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-[320px] pointer-events-none flex flex-col gap-3">
+          <AnimatePresence>
+            {notifications.map((n) => (
+              <motion.div
+                key={n.id}
+                initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                className={`pointer-events-auto p-4 rounded-2xl shadow-lg border-2 flex items-center gap-3 backdrop-blur-md ${
+                  n.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' :
+                  n.type === 'error' ? 'bg-red-500/90 border-red-400 text-white' :
+                  'bg-slate-800/90 border-slate-700 text-white'
+                }`}
+              >
+                <div className="flex-1 font-bold text-sm">{n.message}</div>
+                <button 
+                  onClick={() => setNotifications(prev => prev.filter(item => item.id !== n.id))}
+                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
 
       </div>
     </div>
